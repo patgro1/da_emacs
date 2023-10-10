@@ -1,0 +1,152 @@
+#+TITLE: My Emacs configuration
+#+AUTHOR: Patrick Grogan
+#+PROPERTY: header-args :tangle init.el
+#+begin_src emacs-lisp :comments
+  ;; -*- lexical-binding: t -*-
+#+end_src
+* Into
+* Information
+* Sane defaults
+Here are some sane defaults removing tools bars and such. I'm used to terminal editor (neovim!!!) and want to /replicate/ that feel.
+#+begin_src emacs-lisp
+  (setq inhibit-startup-message t)
+  (menu-bar-mode -1)
+  (toggle-scroll-bar -1)
+  (tool-bar-mode -1)
+  (tooltip-mode -1)
+  (set-fringe-mode 10)
+  ;; the t parameter apends to the hook, instead of prepending
+  ;; this means it'd be run after other hooks that might fiddle
+  ;; with the frame size
+  (add-hook 'window-setup-hook 'toggle-frame-maximized t)
+#+end_src
+* Package management
+I am using straight as an alternative to packages.el We need to make sure to use the develop branch for now to include native compilation of packages.
+#+begin_src emacs-lisp
+  (setq straight-repository-branch "develop")
+  (defvar bootstrap-version)
+  (let ((bootstrap-file
+	 (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+	(bootstrap-version 6))
+    (unless (file-exists-p bootstrap-file)
+      (with-current-buffer
+	  (url-retrieve-synchronously
+	   "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+	   'silent 'inhibit-cookies)
+	(goto-char (point-max))
+	(eval-print-last-sexp)))
+    (load bootstrap-file nil 'nomessage))
+#+end_src
+Straight.el *is not* a replacement for use-package. Both can be used at the same time.
+#+begin_src emacs-lisp
+  (straight-use-package 'use-package)
+  ;; Configure use-package to use straight.el by default
+  (use-package straight
+    :custom
+    (straight-use-package-by-default t))
+#+end_src
+* UI
+** Font
+I have been using Fira Code for a while now to code. Today is not the day I'm changing that.
+#+begin_src emacs-lisp
+  (set-face-attribute 'default nil :family "FiraCode Nerd Font Mono" :height 150)
+#+end_src
+** Theme
+Oh god... I 100% am a theme hopper. However, I usually fill my needs using doom themes. However, before using any of that, I'll be using nerd icons.
+#+begin_src emacs-lisp
+  (use-package nerd-icons
+    ;; :custom
+    ;; The Nerd Font you want to use in GUI
+    ;; "Symbols Nerd Font Mono" is the default and is recommended
+    ;; but you can use any other Nerd Font if you want
+    ;; (nerd-icons-font-family "FiraCode Nerd Font Mono")
+    )
+  (use-package doom-themes
+    :config
+    (load-theme 'doom-gruvbox t))
+  (use-package doom-modeline
+    :ensure t
+    :init (doom-modeline-mode 1))
+#+end_src
+* Completion engine
+** Vertico
+In the past, I have been using ivy and counsel. I'm deciding to give vertico a go.
+#+begin_src emacs-lisp
+  (use-package vertico
+    :init
+    (vertico-mode))
+#+end_src
+** Orderless
+** Consult
+#+begin_src emacs-lisp
+;; Example configuration for Consult
+(use-package consult)
+#+end_src
+* Which-key
+#+begin_src emacs-lisp
+(use-package which-key
+  :ensure t
+  :config
+  (setq which-key-idle-delay 0.3)
+  (which-key-mode))
+#+end_src
+* Evil Mode
+I always was a Vim/Neovim user. Emacs chords always scared me. I can get the best of both world with Evil Mode.
+** Undo system
+Evil mode requires an undo system. No choice but to install one... anyway it's a great thing to have!
+#+begin_src emacs-lisp
+  (use-package undo-tree
+    :init
+    (global-undo-tree-mode 1))
+#+end_src
+** Evil mode
+#+begin_src emacs-lisp
+  (use-package evil
+    :init
+    (setq evil-want-integration t)
+    (setq evil-want-keybinding nil)
+    (setq evil-undo-system 'undo-tree)
+    :config
+    (evil-mode 1))
+#+end_src
+** Evil collection
+This evil collection package gives keybindings for common mode (such as calendar, magit and many others.)
+#+begin_src emacs-lisp
+  (use-package evil-collection
+  :after evil
+  :config
+  (evil-collection-init))
+  (evil-define-key 'normal 'global (kbd "<leader>bb") 'consult-buffer)
+  (evil-define-key 'normal 'global (kbd "<leader>ss") 'consult-ripgrep)
+#+end_src
+** Global keymapping
+Lets change our leader to space as it should.
+#+begin_src emacs-lisp
+  (evil-set-leader nil (kbd "SPC"))
+#+end_src
+
+* Project management
+In this section, we will configure the tools needed for project management. I name projectile and magit.
+** Projectile
+Projectile is a package that manage projects. First, it will manage different project by folder. It will also filters stuff when trying to find files and such within a project. It also gives a filtered version of the buffers when trying to switch buffer.
+#+begin_src emacs-lisp
+  (use-package projectile)
+#+end_src
+** Magit
+#+begin_src emacs-lisp
+(use-package magit
+:after evil-collection
+:config
+  (evil-define-key 'normal 'global (kbd "<leader>gg") 'magit-status))
+#+end_src
+* Language
+** Org
+*** Structured Templates
+One of the great thing about org mode is the structured templates. It let us, for example, easily add source block and examples.
+#+begin_src emacs-lisp
+  (with-eval-after-load 'org
+    (require 'org-tempo)
+    (add-to-list 'org-structure-template-alist '("sh" . "src shell"))
+    (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
+    (add-to-list 'org-structure-template-alist '("py" . "src python")))
+#+end_src
